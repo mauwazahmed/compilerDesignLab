@@ -1,128 +1,138 @@
 #include <bits/stdc++.h>
 using namespace std;
 set<char> ss;
-bool dfs(char i, char org, char last, map<char, vector<vector<char>>> &mp) {
-    bool rtake = false;
-    for (auto r : mp[i]) {
-        bool take = true;
-        for (auto s : r) {
-            if (s == i) break;
-            if (!take) break;
-            if (!(s >= 'A' && s <= 'Z') && s != '#') {
-                ss.insert(s);
-                break;
-            } else if (s == '#') {
-                if (org == i || i == last)
-                    ss.insert(s);
-                rtake = true;
-                break;
-            } else {
-                take = dfs(s, org, r[r.size() - 1], mp);
-                rtake |= take;
+void entry(int, int);
+string production[25];
+string variable;
+int limit;
+int c = 0;
+int p = 0;
+string first[25];
+string follow[25];
+int fst, flw;
+string terminal;
+
+void find_first(char ch)
+{
+    int i;
+    char c;
+
+    for (i = 0; i < limit; i++)
+    {
+        if (ch == production[i][0] && ch != production[i][2])
+        {
+            if (isupper(production[i][2]))
+            {
+                find_first(production[i][2]);
             }
+            if (terminal.find(production[i][2]) < terminal.length())
+            {
+                first[fst] += production[i][2];
+            }
+            if (production[i][2] == 'p')
+                p = 1;
         }
     }
-    return rtake;
+    return;
 }
-int main() {
-    int i, j;
-    ifstream fin("input.txt");
-    string num;
-    vector<int> fs;
-    vector<vector<int>> a;
-    map<char, vector<vector<char>>> mp;
-    char start;
-    bool flag = 0;
-    while (getline(fin, num)) {
-        if (flag == 0) start = num[0], flag = 1;
-        vector<char> temp;
-        char s = num[0];
-        for (i = 3; i < num.size(); i++) {
-            if (num[i] == '|') {
-                mp[s].push_back(temp);
-                temp.clear();
-            } else
-                temp.push_back(num[i]);
-        }
-        mp[s].push_back(temp);
-    }
-    map<char, set<char>> fmp;
-    for (auto q : mp) {
-        ss.clear();
-        dfs(q.first, q.first, q.first, mp);
-        for (auto g : ss) fmp[q.first].insert(g);
-    }
-    cout << '\n';
-    cout << "Firsts: " << '\n';
-    for (auto q : fmp) {
-        string ans = "";
-        ans += q.first;
-        ans += " = ";
-        for (char r : q.second) {
-            ans += r;
-            ans += ", ";
-        }
-        ans.pop_back();
-        cout << ans << '\n';
-    }
-    map<char, set<char>> gmp;
-    gmp[start].insert('$');
-    int count = 10;
-    while (count--) {
-        for (auto q : mp) {
-            for (auto r : q.second) {
-                for (i = 0; i < r.size() - 1; i++) {
-                    if (r[i] >= 'A' && r[i] <= 'Z') {
-                        if (!(r[i + 1] >= 'A' && r[i + 1] <= 'Z'))
-                            gmp[r[i]].insert(r[i + 1]);
-                        else {
-                            char temp = r[i + 1];
-                            int j = i + 1;
-                            while (temp >= 'A' && temp <= 'Z') {
-                                if (*fmp[temp].begin() == '#') {
-                                    for (auto g : fmp[temp]) {
-                                        if (g == '#') continue;
-                                        gmp[r[i]].insert(g);
-                                    }
-                                    j++;
-                                    if (j < r.size()) {
-                                        temp = r[j];
-                                        if (!(temp >= 'A' && temp <= 'Z')) {
-                                            gmp[r[i]].insert(temp);
-                                            break;
-                                        }
-                                    } else {
-                                        for (auto g : gmp[q.first]) gmp[r[i]].insert(g);
-                                        break;
-                                    }
-                                } else {
-                                    for (auto g : fmp[temp]) {
-                                        gmp[r[i]].insert(g);
-                                    }
-                                    break;
-                                }
-                            }
+
+void find_follow(char ch)
+{
+    int i, j, l;
+    for (i = 0; i < limit; i++)
+    {
+        l = production[i].length();
+        for (j = 2; j < l; j++)
+        {
+            if (ch == production[i][j])
+            {
+                if (islower(production[i][j + 1]))
+                {
+                    if (follow[flw].find(production[i][j + 1]) > follow[flw].length())
+                        follow[flw] += production[i][j + 1];
+                    c++;
+                }
+                if (j < l - 1)
+                {
+                    for (int k = 0; k < variable.length(); k++)
+                    {
+                        if (production[i][j + 1] == variable[k])
+                        {
+                            follow[flw] += first[k];
+                            follow[flw].erase(follow[flw].begin() + follow[flw].find('p'));
                         }
                     }
+                    c++;
                 }
-                if (r[r.size() - 1] >= 'A' && r[r.size() - 1] <= 'Z') {
-                    for (auto g : gmp[q.first]) gmp[r[i]].insert(g);
+                if (j == l - 1 && production[i][0] != production[i][j])
+                {
+                    c = 0;
+                    find_follow(production[i][0]);
                 }
             }
         }
     }
-    cout << '\n';
-    cout << "Follows: " << '\n';
-    for (auto q : gmp) {
-        string ans = "";
-        ans += q.first;
-        ans += " = ";
-        for (char r : q.second) {
-            ans += r;
-            ans += ", ";
-        }
-        ans.pop_back();
-        cout << ans << '\n';
-    }
-    return 0;
+    if (c == 0)
+        follow[flw] += "$";
+    return;
 }
+
+
+int main() {
+    int l, j = 0, i, k;
+    char ch;
+    ifstream obj("input.txt");
+    string line;
+    while (!obj.eof())
+    {
+        getline(obj, production[j]);
+        l = production[j].length();
+        for (i = 0; i < l; i++)
+        {
+            ch = production[j][i];
+            if (isupper(ch) && variable.find(ch) > variable.length())
+                variable += ch;
+            if (!isupper(ch) && terminal.find(ch) > terminal.length() && ch != 'p' && ch != ' ')
+            {
+                terminal += production[j][i];
+            }
+        }
+        j++;
+    }
+    sort(terminal.begin(), terminal.end());
+    terminal += '$';
+    cout << "terminals are = ";
+    for (int i = 0; i < terminal.length(); i++)
+    {
+        cout << terminal[i] << " ";
+    }
+    cout << endl;
+    cout << endl;
+    limit = j;
+    obj.close();
+    j = 0;
+    fst = 0;
+    for (k = 0; k < variable.length(); k++)
+    {
+        cout << "first of " << variable[j] << " is { ";
+        find_first(variable[j]);
+        if (p == 1)
+            first[fst] += 'p';
+        cout << first[fst] << " }\n";
+        fst++;
+        j++;
+    }
+    cout << endl;
+    flw = 0;
+    for (k = 0; k < variable.length(); k++)
+    {
+        c = 0;
+        cout << "follow of " << variable[k] << " is { ";
+        find_follow(variable[k]);
+        cout << follow[flw] << " }\n";
+        flw++;
+    }
+    cout << "\n\t";
+}
+
+
